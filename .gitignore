@@ -1,0 +1,6 @@
+dataset/*
+!dataset/download_msd_aws.py
+runs/
+outputs/
+pretrained_models/
+__pycache__/
