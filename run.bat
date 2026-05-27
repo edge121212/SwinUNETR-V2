@@ -29,17 +29,17 @@ if "%TASK%"=="Prostate" (
     set DATA_DIR=dataset/Task05_Prostate/
     set LOG_DIR=runs/prostate
     set MAX_EPOCHS=2000
-    set VAL_EVERY=100
+    set VAL_EVERY=25
 ) else if "%TASK%"=="Lung" (
     set DATA_DIR=dataset/Task06_Lung/
     set LOG_DIR=runs/lung
     set MAX_EPOCHS=700
-    set VAL_EVERY=50
+    set VAL_EVERY=10
 ) else if "%TASK%"=="Pancreas" (
     set DATA_DIR=dataset/Task07_Pancreas/
     set LOG_DIR=runs/pancreas
     set MAX_EPOCHS=700
-    set VAL_EVERY=50
+    set VAL_EVERY=10
 ) else (
     echo Error: Invalid task '!TASK!'. Choose Prostate, Lung, or Pancreas.
     exit /b

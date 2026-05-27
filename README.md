@@ -43,7 +43,7 @@ pip install -r requirements.txt
 
 ## 🏋️ 3. 模型訓練 (Training)
 下載完資料集後，直接呼叫腳本即可開始訓練。
-*(預設訓練 50 個 Epoch，參數已調整為最適合本地 3D 訓練的安全配置)*
+*(已自動根據資料集大小調整最佳訓練長度：Prostate 會跑 2000 Epochs，Lung/Pancreas 會跑 700 Epochs，皆完美對齊官方 40k iterations 的收斂標準)*
 
 ```cmd
 .\run.bat train Lung
