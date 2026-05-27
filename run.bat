@@ -28,12 +28,18 @@ if "%TASK%"=="" (
 if "%TASK%"=="Prostate" (
     set DATA_DIR=dataset/Task05_Prostate/
     set LOG_DIR=runs/prostate
+    set MAX_EPOCHS=2000
+    set VAL_EVERY=100
 ) else if "%TASK%"=="Lung" (
     set DATA_DIR=dataset/Task06_Lung/
     set LOG_DIR=runs/lung
+    set MAX_EPOCHS=700
+    set VAL_EVERY=50
 ) else if "%TASK%"=="Pancreas" (
     set DATA_DIR=dataset/Task07_Pancreas/
     set LOG_DIR=runs/pancreas
+    set MAX_EPOCHS=700
+    set VAL_EVERY=50
 ) else (
     echo Error: Invalid task '!TASK!'. Choose Prostate, Lung, or Pancreas.
     exit /b
@@ -44,8 +50,9 @@ if "%ACTION%"=="train" (
     echo [Training] Task: !TASK! 
     echo [Data Dir] !DATA_DIR!
     echo [Log Dir]  !LOG_DIR!
+    echo [Epochs]   !MAX_EPOCHS!
     echo ========================================================
-    python main.py --task !TASK! --fold 0 --data_dir !DATA_DIR! --json_list dataset.json --use_checkpoint --workers 2 --roi_x 64 --roi_y 64 --roi_z 64 --max_epochs 50 --val_every 5 --save_checkpoint --logdir !LOG_DIR! --use_normal_dataset
+    python main.py --task !TASK! --fold 0 --data_dir !DATA_DIR! --json_list dataset.json --use_checkpoint --workers 2 --roi_x 64 --roi_y 64 --roi_z 64 --max_epochs !MAX_EPOCHS! --val_every !VAL_EVERY! --save_checkpoint --logdir !LOG_DIR! --use_normal_dataset
 ) else if "%ACTION%"=="test" (
     echo ========================================================
     echo [Testing] Task: !TASK! 
