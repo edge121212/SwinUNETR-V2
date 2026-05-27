@@ -45,6 +45,14 @@ if "%TASK%"=="Prostate" (
     exit /b
 )
 
+if not exist "!DATA_DIR!" (
+    echo ========================================================
+    echo Error: 資料夾 '!DATA_DIR!' 不存在！
+    echo 請先執行 'run.bat download !TASK!' 下載資料集。
+    echo ========================================================
+    exit /b
+)
+
 if "%ACTION%"=="train" (
     echo ========================================================
     echo [Training] Task: !TASK! 
