@@ -186,7 +186,7 @@ def get_loader(args):
             num_workers=args.workers,
             sampler=test_sampler,
             pin_memory=True,
-            persistent_workers=True,
+            persistent_workers=(args.workers > 0),
         )
         loader = test_loader
     else:
