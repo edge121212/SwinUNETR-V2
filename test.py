@@ -103,6 +103,7 @@ def main():
 
     with torch.no_grad():
         dice_list_case = []
+        dice_list_classes = [[] for _ in range(args.out_channels - 1)]
         for i, batch in enumerate(val_loader):
             val_inputs, val_labels = (batch["image"].cuda(), batch["label"].cuda())
             original_affine = batch["label"].meta["affine"][0].numpy()
@@ -121,6 +122,10 @@ def main():
             for c in range(1, args.out_channels):
                 organ_Dice = dice(val_outputs == c, val_labels == c)
                 dice_list_sub.append(organ_Dice)
+                dice_list_classes[c-1].append(organ_Dice)
+            
+            if args.task == "Prostate":
+                print("PZ Dice: {:.4f}, TZ Dice: {:.4f}".format(dice_list_sub[0], dice_list_sub[1]))
             mean_dice = np.mean(dice_list_sub)
             print("Mean Organ Dice: {}".format(mean_dice))
             dice_list_case.append(mean_dice)
@@ -128,7 +133,13 @@ def main():
                 nib.Nifti1Image(val_outputs.astype(np.uint8), original_affine), os.path.join(output_directory, img_name)
             )
 
-        print("Overall Mean Dice: {}".format(np.mean(dice_list_case)))
+        print("Overall Mean Dice: {:.4f}".format(np.mean(dice_list_case)))
+        if args.task == "Prostate":
+            print("Overall PZ Dice: {:.4f}".format(np.mean(dice_list_classes[0])))
+            print("Overall TZ Dice: {:.4f}".format(np.mean(dice_list_classes[1])))
+        else:
+            for c in range(args.out_channels - 1):
+                print("Overall Class {} Dice: {:.4f}".format(c+1, np.mean(dice_list_classes[c])))
 
 
 if __name__ == "__main__":
