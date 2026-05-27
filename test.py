@@ -96,7 +96,7 @@ def main():
         dropout_path_rate=0.0,
         use_checkpoint=args.use_checkpoint,
     )
-    model_dict = torch.load(pretrained_pth)["state_dict"]
+    model_dict = torch.load(pretrained_pth, weights_only=False)["state_dict"]
     model.load_state_dict(model_dict)
     model.eval()
     model.to(device)

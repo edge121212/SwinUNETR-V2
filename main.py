@@ -161,13 +161,13 @@ def main_worker(gpu, args):
     )
 
     if args.resume_ckpt:
-        model_dict = torch.load(os.path.join(pretrained_dir, args.pretrained_model_name))["state_dict"]
+        model_dict = torch.load(os.path.join(pretrained_dir, args.pretrained_model_name), weights_only=False)["state_dict"]
         model.load_state_dict(model_dict)
         print("Use pretrained weights")
 
     if args.use_ssl_pretrained:
         try:
-            model_dict = torch.load("./pretrained_models/model_swinvit.pt")
+            model_dict = torch.load("./pretrained_models/model_swinvit.pt", weights_only=False)
             state_dict = model_dict["state_dict"]
             # fix potential differences in state dict keys from pre-training to
             # fine-tuning
@@ -211,7 +211,7 @@ def main_worker(gpu, args):
     start_epoch = 0
 
     if args.checkpoint is not None:
-        checkpoint = torch.load(args.checkpoint, map_location="cpu")
+        checkpoint = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
         from collections import OrderedDict
 
         new_state_dict = OrderedDict()
