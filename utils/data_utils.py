@@ -139,6 +139,7 @@ def get_loader(args):
     train_transform = transforms.Compose(
         base_transforms + intensity_transforms + [
             transforms.CropForegroundd(keys=["image", "label"], source_key="image", allow_smaller=True),
+            transforms.SpatialPadd(keys=["image", "label"], spatial_size=(args.roi_x, args.roi_y, args.roi_z), mode="constant"),
             transforms.RandCropByPosNegLabeld(
                 keys=["image", "label"],
                 label_key="label",
