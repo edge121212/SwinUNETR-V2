@@ -3,12 +3,13 @@ setlocal enabledelayedexpansion
 
 set ACTION=%1
 set TASK=%2
+set EPOCHS_OVERRIDE=%3
 
 if "%ACTION%"=="" (
-    echo Usage: run.bat [download ^| train ^| test] [Prostate ^| Lung ^| Pancreas ^| All]
-    echo Example 1: run.bat download Lung
+    echo Usage: run.bat [download ^| train ^| test ^| kfold] [Prostate ^| Lung ^| Pancreas ^| All] [epochs?]
+    echo Example 1: run.bat download Prostate
     echo Example 2: run.bat train Prostate
-    echo Example 3: run.bat test Pancreas
+    echo Example 3: run.bat kfold Prostate 500
     exit /b
 )
 
@@ -20,56 +21,89 @@ if "%ACTION%"=="download" (
 )
 
 if "%TASK%"=="" (
-    echo Error: You must specify a task for training/testing.
-    echo Example: run.bat train Lung
+    echo Error: You must specify a task for %ACTION%.
     exit /b
 )
 
 if "%TASK%"=="Prostate" (
     set DATA_DIR=dataset/Task05_Prostate/
-    set LOG_DIR=runs/prostate
-    set MAX_EPOCHS=2000
+    set LOG_BASE=prostate
+    set DEFAULT_EPOCHS=2000
     set VAL_EVERY=25
+    set IN_CH=2
+    set OUT_CH=3
 ) else if "%TASK%"=="Lung" (
     set DATA_DIR=dataset/Task06_Lung/
-    set LOG_DIR=runs/lung
-    set MAX_EPOCHS=700
+    set LOG_BASE=lung
+    set DEFAULT_EPOCHS=700
     set VAL_EVERY=10
+    set IN_CH=1
+    set OUT_CH=2
 ) else if "%TASK%"=="Pancreas" (
     set DATA_DIR=dataset/Task07_Pancreas/
-    set LOG_DIR=runs/pancreas
-    set MAX_EPOCHS=700
+    set LOG_BASE=pancreas
+    set DEFAULT_EPOCHS=700
     set VAL_EVERY=10
+    set IN_CH=1
+    set OUT_CH=3
 ) else (
     echo Error: Invalid task '!TASK!'. Choose Prostate, Lung, or Pancreas.
     exit /b
 )
 
+if "!EPOCHS_OVERRIDE!"=="" (
+    set EPOCHS=!DEFAULT_EPOCHS!
+) else (
+    set EPOCHS=!EPOCHS_OVERRIDE!
+)
+
 if not exist "!DATA_DIR!" (
-    echo ========================================================
-    echo Error: 資料夾 '!DATA_DIR!' 不存在！
-    echo 請先執行 'run.bat download !TASK!' 下載資料集。
-    echo ========================================================
+    echo Error: 資料夾 '!DATA_DIR!' 不存在，請先執行 'run.bat download !TASK!'。
     exit /b
 )
 
 if "%ACTION%"=="train" (
     echo ========================================================
-    echo [Training] Task: !TASK! 
-    echo [Data Dir] !DATA_DIR!
-    echo [Log Dir]  !LOG_DIR!
-    echo [Epochs]   !MAX_EPOCHS!
+    echo [Training] Task: !TASK!  Fold: 0  Epochs: !EPOCHS!
     echo ========================================================
-    python main.py --task !TASK! --fold 0 --data_dir !DATA_DIR! --json_list dataset.json --use_checkpoint --workers 2 --roi_x 64 --roi_y 64 --roi_z 64 --max_epochs !MAX_EPOCHS! --val_every !VAL_EVERY! --save_checkpoint --logdir !LOG_DIR! --use_normal_dataset
-) else if "%ACTION%"=="test" (
-    echo ========================================================
-    echo [Testing] Task: !TASK! 
-    echo [Data Dir] !DATA_DIR!
-    echo [Model]    ./!LOG_DIR!/model_final.pt
-    echo ========================================================
-    python test.py --task !TASK! --fold 0 --data_dir !DATA_DIR! --json_list dataset.json --pretrained_dir ./!LOG_DIR!/ --pretrained_model_name model_final.pt --roi_x 64 --roi_y 64 --roi_z 64 --workers 0
-) else (
-    echo Error: Invalid action '!ACTION!'. Choose download, train, or test.
+    python main.py --task !TASK! --fold 0 --data_dir !DATA_DIR! --json_list dataset.json --use_checkpoint --workers 2 --roi_x 64 --roi_y 64 --roi_z 64 --max_epochs !EPOCHS! --val_every !VAL_EVERY! --in_channels !IN_CH! --out_channels !OUT_CH! --save_checkpoint --logdir !LOG_BASE! --use_normal_dataset
+    exit /b
 )
 
+if "%ACTION%"=="test" (
+    echo ========================================================
+    echo [Testing]  Task: !TASK!  Fold: 0
+    echo [Model]    ./runs/!LOG_BASE!/model_final.pt
+    echo ========================================================
+    python test.py --task !TASK! --fold 0 --data_dir !DATA_DIR! --json_list dataset.json --pretrained_dir ./runs/!LOG_BASE!/ --pretrained_model_name model_final.pt --roi_x 64 --roi_y 64 --roi_z 64 --workers 0 --in_channels !IN_CH! --out_channels !OUT_CH!
+    exit /b
+)
+
+if "%ACTION%"=="kfold" (
+    if not exist "runs" mkdir runs
+    for %%F in (0 1 2 3 4) do (
+        set LOGDIR=!LOG_BASE!_fold%%F
+        set TESTLOG=runs\!LOGDIR!_test.log
+        if exist "runs\!LOGDIR!\model_final.pt" (
+            echo [Skip train] runs\!LOGDIR!\model_final.pt already exists.
+        ) else (
+            echo ========================================================
+            echo [Training] Task: !TASK!  Fold: %%F  Epochs: !EPOCHS!
+            echo ========================================================
+            python main.py --task !TASK! --fold %%F --data_dir !DATA_DIR! --json_list dataset.json --use_checkpoint --workers 2 --roi_x 64 --roi_y 64 --roi_z 64 --max_epochs !EPOCHS! --val_every !VAL_EVERY! --in_channels !IN_CH! --out_channels !OUT_CH! --save_checkpoint --logdir !LOGDIR! --use_normal_dataset
+        )
+        echo ========================================================
+        echo [Testing]  Task: !TASK!  Fold: %%F
+        echo ========================================================
+        python test.py --task !TASK! --fold %%F --data_dir !DATA_DIR! --json_list dataset.json --pretrained_dir ./runs/!LOGDIR!/ --pretrained_model_name model_final.pt --roi_x 64 --roi_y 64 --roi_z 64 --workers 0 --in_channels !IN_CH! --out_channels !OUT_CH! --exp_name !LOGDIR! > !TESTLOG! 2>&1
+        type !TESTLOG!
+    )
+    echo ========================================================
+    echo [Aggregating 5-fold results for !TASK!]
+    echo ========================================================
+    python utils\aggregate_kfold.py --task !TASK! --log_base !LOG_BASE!
+    exit /b
+)
+
+echo Error: Invalid action '!ACTION!'. Choose download, train, test, or kfold.
 endlocal

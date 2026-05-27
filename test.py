@@ -133,13 +133,13 @@ def main():
                 nib.Nifti1Image(val_outputs.astype(np.uint8), original_affine), os.path.join(output_directory, img_name)
             )
 
-        print("Overall Mean Dice: {:.4f}".format(np.mean(dice_list_case)))
+        print("Overall Mean Dice: {:.4f} (±{:.4f})".format(np.mean(dice_list_case), np.std(dice_list_case)))
         if args.task == "Prostate":
-            print("Overall PZ Dice: {:.4f}".format(np.mean(dice_list_classes[0])))
-            print("Overall TZ Dice: {:.4f}".format(np.mean(dice_list_classes[1])))
+            print("Overall PZ Dice: {:.4f} (±{:.4f})".format(np.mean(dice_list_classes[0]), np.std(dice_list_classes[0])))
+            print("Overall TZ Dice: {:.4f} (±{:.4f})".format(np.mean(dice_list_classes[1]), np.std(dice_list_classes[1])))
         else:
             for c in range(args.out_channels - 1):
-                print("Overall Class {} Dice: {:.4f}".format(c+1, np.mean(dice_list_classes[c])))
+                print("Overall Class {} Dice: {:.4f} (±{:.4f})".format(c+1, np.mean(dice_list_classes[c]), np.std(dice_list_classes[c])))
 
 
 if __name__ == "__main__":
