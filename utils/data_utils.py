@@ -155,9 +155,9 @@ def get_loader(args):
             transforms.RandRotate90d(keys=["image", "label"], prob=args.RandRotate90d_prob, max_k=3),
             transforms.RandScaleIntensityd(keys="image", factors=0.1, prob=args.RandScaleIntensityd_prob),
             transforms.RandShiftIntensityd(keys="image", offsets=0.1, prob=args.RandShiftIntensityd_prob),
-            transforms.RandGaussianSmoothd(keys=["image"], prob=0.1),
-            transforms.RandGaussianNoised(keys=["image"], prob=0.1),
-            transforms.RandAdjustGammad(keys=["image"], prob=0.1),
+            transforms.RandGaussianSmoothd(keys=["image"], prob=0.1, sigma_x=(0.5, 1.0), sigma_y=(0.5, 1.0), sigma_z=(0.5, 1.0)),
+            transforms.RandGaussianNoised(keys=["image"], prob=0.1, mean=0.0, std=0.1),
+            transforms.RandAdjustContrastd(keys=["image"], prob=0.1, gamma=(0.5, 1.5)),
             transforms.ToTensord(keys=["image", "label"]),
         ]
     )
