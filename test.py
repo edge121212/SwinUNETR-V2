@@ -95,6 +95,7 @@ def main():
         attn_drop_rate=0.0,
         dropout_path_rate=0.0,
         use_checkpoint=args.use_checkpoint,
+        use_v2=True,
     )
     model_dict = torch.load(pretrained_pth, weights_only=False)["state_dict"]
     model.load_state_dict(model_dict)

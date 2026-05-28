@@ -47,6 +47,12 @@ fi
 run_train_one_fold() {
     local fold="$1"
     local logdir="$2"
+    local ckpt="runs/${logdir}/model_final.pt"
+    local resume_args=()
+    if [[ -f "$ckpt" ]]; then
+        resume_args=(--checkpoint "$ckpt")
+        echo "[Resume]   Found existing checkpoint, resuming from $ckpt"
+    fi
     echo "========================================================"
     echo "[Training] Task: $TASK  Fold: $fold  Epochs: $EPOCHS"
     echo "[Logdir]   runs/$logdir"
@@ -57,7 +63,8 @@ run_train_one_fold() {
         --roi_x 64 --roi_y 64 --roi_z 64 \
         --max_epochs "$EPOCHS" --val_every "$VAL_EVERY" \
         --in_channels "$IN_CH" --out_channels "$OUT_CH" \
-        --save_checkpoint --logdir "$logdir" --use_normal_dataset
+        --save_checkpoint --logdir "$logdir" --use_normal_dataset \
+        "${resume_args[@]}"
 }
 
 run_test_one_fold() {
@@ -85,11 +92,11 @@ elif [[ "$ACTION" == "kfold" ]]; then
     for fold in 0 1 2 3 4; do
         LOGDIR="${LOG_BASE}_fold${fold}"
         TESTLOG="runs/${LOGDIR}_test.log"
-        if [[ -f "runs/${LOGDIR}/model_final.pt" ]]; then
-            echo "[Skip train] runs/${LOGDIR}/model_final.pt already exists."
-        else
-            run_train_one_fold "$fold" "$LOGDIR"
+        if [[ -f "$TESTLOG" ]]; then
+            echo "[Skip fold $fold] test log $TESTLOG already exists, fold complete."
+            continue
         fi
+        run_train_one_fold "$fold" "$LOGDIR"
         run_test_one_fold "$fold" "$LOGDIR" "$TESTLOG"
     done
     echo

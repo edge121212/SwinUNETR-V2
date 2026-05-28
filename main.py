@@ -158,6 +158,7 @@ def main_worker(gpu, args):
         attn_drop_rate=0.0,
         dropout_path_rate=args.dropout_path_rate,
         use_checkpoint=args.use_checkpoint,
+        use_v2=True,
     )
 
     if args.resume_ckpt:
