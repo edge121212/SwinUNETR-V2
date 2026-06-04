@@ -114,9 +114,9 @@ Colab 不支援 `.bat` / `.sh` 腳本，可直接貼以下 Python 指令（以 P
 # 下載
 !python dataset/download_msd_aws.py --task Prostate
 # 訓練（務必加 --use_normal_dataset 避免記憶體爆滿）
-!python main.py --task Prostate --fold 0 --data_dir dataset/Task05_Prostate/ --json_list dataset.json --use_checkpoint --workers 2 --roi_x 96 --roi_y 96 --roi_z 96 --max_epochs 500 --val_every 25 --save_checkpoint --logdir prostate_fold0 --use_normal_dataset
+!python main.py --task Prostate --fold 0 --data_dir dataset/Task05_Prostate/ --json_list dataset.json --use_checkpoint --workers 2 --roi_x 96 --roi_y 96 --roi_z 64 --max_epochs 500 --val_every 25 --save_checkpoint --logdir prostate_fold0 --use_normal_dataset
 # 測試（務必加 --workers 0 避免 DataLoader 崩潰）
-!python test.py --task Prostate --fold 0 --data_dir dataset/Task05_Prostate/ --json_list dataset.json --pretrained_dir ./runs/prostate_fold0/ --pretrained_model_name model.pt --roi_x 96 --roi_y 96 --roi_z 96 --workers 0
+!python test.py --task Prostate --fold 0 --data_dir dataset/Task05_Prostate/ --json_list dataset.json --pretrained_dir ./runs/prostate_fold0/ --pretrained_model_name model.pt --roi_x 96 --roi_y 96 --roi_z 64 --workers 0
 ```
 
 ---
@@ -146,6 +146,8 @@ Colab 不支援 `.bat` / `.sh` 腳本，可直接貼以下 Python 指令（以 P
 | `run.sh` / `run.bat` | 新增環境變數 `ATTN_LEVELS` 開關；AG 實驗的 `runs/` 自動加 `_ag<levels>` 後綴，不會蓋到 baseline |
 
 **關鍵保證**：`attn_gate_levels` 為空時，模型與原版 MONAI SwinUNETR **逐 key 完全相同**（已驗證），baseline checkpoint 仍相容。decoder 層編號 **1 = 最高解析（靠近輸出）… 5 = 最深/最粗**。全程 from scratch、`use_v2=True` 固定開啟。
+
+**ROI 設定**：Prostate 用 **96×96×64**（各向異性）—— prostate z 軸薄（1mm 重採樣後約 60 層），z=64 避免大量 zero-padding、同時保留平面 context。BTCV/SwinUNETR 預設是 96³，但 z=96 對薄 prostate 會塞太多 padding 反而表現差。每個維度須為 **32 的倍數**（96=3×32、64=2×32）。三個實驗（E0/E1/E2a）都用同一個 96×96×64，差別只在 attention gate。
 
 ## B-2. 從零開始
 

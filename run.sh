@@ -31,10 +31,11 @@ fi
 if [[ -z "$TASK" ]]; then echo "Error: TASK required for $ACTION."; usage; exit 1; fi
 
 # TARGET_ITERS: paper recipe adapts epochs per task so total training iterations ~= 40000.
-# ROI: paper/SwinUNETR recipe uses 96^3; we keep 96^3 for Prostate to align with the paper
-# (SpatialPadd handles volumes thinner than 96 in z after 1mm resampling).
+# ROI: BTCV/SwinUNETR codebase default is 96^3. For Prostate we use 96x96x64 (anisotropic):
+# prostate volumes are thin in z (~60 slices after 1mm resampling), so z=64 avoids heavy zero-padding
+# while keeping in-plane context. Must stay a multiple of 32 per dim (96=3*32, 64=2*32).
 case "$TASK" in
-    Prostate)  DATA_DIR="dataset/Task05_Prostate/"; LOG_BASE="prostate"; DEFAULT_EPOCHS=2000; VAL_EVERY=25; IN_CH=2; OUT_CH=3; TARGET_ITERS=40000; ROI_X=96; ROI_Y=96; ROI_Z=96 ;;
+    Prostate)  DATA_DIR="dataset/Task05_Prostate/"; LOG_BASE="prostate"; DEFAULT_EPOCHS=2000; VAL_EVERY=25; IN_CH=2; OUT_CH=3; TARGET_ITERS=40000; ROI_X=96; ROI_Y=96; ROI_Z=64 ;;
     Lung)      DATA_DIR="dataset/Task06_Lung/";      LOG_BASE="lung";      DEFAULT_EPOCHS=700;  VAL_EVERY=10; IN_CH=1; OUT_CH=2; TARGET_ITERS=40000; ROI_X=64; ROI_Y=64; ROI_Z=64 ;;
     Pancreas)  DATA_DIR="dataset/Task07_Pancreas/";  LOG_BASE="pancreas";  DEFAULT_EPOCHS=700;  VAL_EVERY=10; IN_CH=1; OUT_CH=3; TARGET_ITERS=40000; ROI_X=64; ROI_Y=64; ROI_Z=64 ;;
     *) echo "Error: Invalid task '$TASK'."; exit 1 ;;

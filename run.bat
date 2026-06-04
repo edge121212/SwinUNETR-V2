@@ -26,8 +26,8 @@ if "%TASK%"=="" (
 )
 
 :: TARGET_ITERS: paper recipe adapts epochs per task so total training iterations ~= 40000.
-:: ROI: paper/SwinUNETR recipe uses 96^3; we keep 96^3 for Prostate to align with the paper
-::      (SpatialPadd handles volumes thinner than 96 in z after 1mm resampling).
+:: ROI: BTCV/SwinUNETR default is 96^3. For Prostate we use 96x96x64 (anisotropic): thin z-axis
+::      (~60 slices after 1mm resample), so z=64 avoids heavy padding. Each dim must be a multiple of 32.
 if "%TASK%"=="Prostate" (
     set DATA_DIR=dataset/Task05_Prostate/
     set LOG_BASE=prostate
@@ -38,7 +38,7 @@ if "%TASK%"=="Prostate" (
     set TARGET_ITERS=40000
     set ROI_X=96
     set ROI_Y=96
-    set ROI_Z=96
+    set ROI_Z=64
 ) else if "%TASK%"=="Lung" (
     set DATA_DIR=dataset/Task06_Lung/
     set LOG_BASE=lung
