@@ -82,7 +82,7 @@ def get_loader(args):
     rng.shuffle(all_data)
     
     num_samples = len(all_data)
-    fold = args.fold
+    fold = args.fold  # kfold = 5, 所以 fold 值應在 0 到 4 之間
     if fold < 0 or fold > 4:
         raise ValueError("Fold must be between 0 and 4")
         

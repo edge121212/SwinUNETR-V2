@@ -30,14 +30,24 @@ fi
 
 if [[ -z "$TASK" ]]; then echo "Error: TASK required for $ACTION."; usage; exit 1; fi
 
+# TARGET_ITERS: paper recipe adapts epochs per task so total training iterations ~= 40000.
+# ROI: paper/SwinUNETR recipe uses 96^3; we keep 96^3 for Prostate to align with the paper
+# (SpatialPadd handles volumes thinner than 96 in z after 1mm resampling).
 case "$TASK" in
-    Prostate)  DATA_DIR="dataset/Task05_Prostate/"; LOG_BASE="prostate"; DEFAULT_EPOCHS=2000; VAL_EVERY=25; IN_CH=2; OUT_CH=3 ;;
-    Lung)      DATA_DIR="dataset/Task06_Lung/";      LOG_BASE="lung";      DEFAULT_EPOCHS=700;  VAL_EVERY=10; IN_CH=1; OUT_CH=2 ;;
-    Pancreas)  DATA_DIR="dataset/Task07_Pancreas/";  LOG_BASE="pancreas";  DEFAULT_EPOCHS=700;  VAL_EVERY=10; IN_CH=1; OUT_CH=3 ;;
+    Prostate)  DATA_DIR="dataset/Task05_Prostate/"; LOG_BASE="prostate"; DEFAULT_EPOCHS=2000; VAL_EVERY=25; IN_CH=2; OUT_CH=3; TARGET_ITERS=40000; ROI_X=96; ROI_Y=96; ROI_Z=96 ;;
+    Lung)      DATA_DIR="dataset/Task06_Lung/";      LOG_BASE="lung";      DEFAULT_EPOCHS=700;  VAL_EVERY=10; IN_CH=1; OUT_CH=2; TARGET_ITERS=40000; ROI_X=64; ROI_Y=64; ROI_Z=64 ;;
+    Pancreas)  DATA_DIR="dataset/Task07_Pancreas/";  LOG_BASE="pancreas";  DEFAULT_EPOCHS=700;  VAL_EVERY=10; IN_CH=1; OUT_CH=3; TARGET_ITERS=40000; ROI_X=64; ROI_Y=64; ROI_Z=64 ;;
     *) echo "Error: Invalid task '$TASK'."; exit 1 ;;
 esac
 
-EPOCHS="${EPOCHS_OVERRIDE:-$DEFAULT_EPOCHS}"
+# If the user passes an explicit epoch count, honor it (fixed max_epochs); otherwise auto-target ~40k iters.
+if [[ -n "$EPOCHS_OVERRIDE" ]]; then
+    EPOCH_ARGS=(--max_epochs "$EPOCHS_OVERRIDE")
+    EPOCH_DESC="$EPOCHS_OVERRIDE epochs"
+else
+    EPOCH_ARGS=(--target_iters "$TARGET_ITERS")
+    EPOCH_DESC="~${TARGET_ITERS} iters (auto epochs)"
+fi
 
 if [[ ! -d "$DATA_DIR" ]]; then
     echo "Error: '$DATA_DIR' not found. Run './run.sh download $TASK' first."
@@ -54,14 +64,14 @@ run_train_one_fold() {
         echo "[Resume]   Found existing checkpoint, resuming from $ckpt"
     fi
     echo "========================================================"
-    echo "[Training] Task: $TASK  Fold: $fold  Epochs: $EPOCHS"
+    echo "[Training] Task: $TASK  Fold: $fold  Budget: $EPOCH_DESC  ROI: ${ROI_X}x${ROI_Y}x${ROI_Z}"
     echo "[Logdir]   runs/$logdir"
     echo "========================================================"
     python3 main.py --task "$TASK" --fold "$fold" \
         --data_dir "$DATA_DIR" --json_list dataset.json \
         --use_checkpoint --workers 2 \
-        --roi_x 64 --roi_y 64 --roi_z 64 \
-        --max_epochs "$EPOCHS" --val_every "$VAL_EVERY" \
+        --roi_x "$ROI_X" --roi_y "$ROI_Y" --roi_z "$ROI_Z" \
+        "${EPOCH_ARGS[@]}" --val_every "$VAL_EVERY" \
         --in_channels "$IN_CH" --out_channels "$OUT_CH" \
         --save_checkpoint --logdir "$logdir" --use_normal_dataset \
         "${resume_args[@]}"
@@ -78,7 +88,7 @@ run_test_one_fold() {
     python3 test.py --task "$TASK" --fold "$fold" \
         --data_dir "$DATA_DIR" --json_list dataset.json \
         --pretrained_dir "./runs/$logdir/" --pretrained_model_name model_final.pt \
-        --roi_x 64 --roi_y 64 --roi_z 64 --workers 0 \
+        --roi_x "$ROI_X" --roi_y "$ROI_Y" --roi_z "$ROI_Z" --workers 0 \
         --in_channels "$IN_CH" --out_channels "$OUT_CH" \
         --exp_name "${logdir}" 2>&1 | tee "$outlog"
 }

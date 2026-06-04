@@ -10,6 +10,7 @@
 # limitations under the License.
 
 import argparse
+import math
 import os
 from functools import partial
 
@@ -48,6 +49,12 @@ parser.add_argument(
 )
 parser.add_argument("--save_checkpoint", action="store_true", help="save checkpoint during training")
 parser.add_argument("--max_epochs", default=5000, type=int, help="max number of training epochs")
+parser.add_argument(
+    "--target_iters",
+    default=0,
+    type=int,
+    help="if >0, auto-set max_epochs per fold so total iterations ~= this value (paper recipe uses 40000)",
+)
 parser.add_argument("--batch_size", default=1, type=int, help="number of batch size")
 parser.add_argument("--sw_batch_size", default=4, type=int, help="number of sliding window batch size")
 parser.add_argument("--optim_lr", default=4e-4, type=float, help="optimization learning rate")
@@ -138,11 +145,16 @@ def main_worker(gpu, args):
     args.test_mode = False
     loader = get_loader(args)
     
-    if args.max_epochs == 5000:
+    if args.target_iters > 0:
         iters_per_epoch = len(loader[0])
-        args.max_epochs = max(1, 40000 // iters_per_epoch)
+        # paper recipe: adapt epochs per task so total training iterations ~= target_iters (40k).
+        # never drop below warmup_epochs, otherwise the warmup-cosine schedule misbehaves.
+        args.max_epochs = max(args.warmup_epochs + 1, math.ceil(args.target_iters / iters_per_epoch))
         if args.rank == 0:
-            print(f"Auto adjusted max_epochs to {args.max_epochs} for ~40k iterations ({iters_per_epoch} iters/epoch)")
+            print(
+                f"Auto adjusted max_epochs to {args.max_epochs} for ~{args.target_iters} iterations "
+                f"({iters_per_epoch} iters/epoch)"
+            )
             
     print(args.rank, " gpu", args.gpu)
     if args.rank == 0:
