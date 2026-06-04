@@ -83,11 +83,11 @@ run_test_one_fold() {
     local outlog="$3"
     echo "========================================================"
     echo "[Testing]  Task: $TASK  Fold: $fold"
-    echo "[Model]    ./runs/$logdir/model_final.pt"
+    echo "[Model]    ./runs/$logdir/model.pt  (best-on-validation; matches paper's val-based model selection)"
     echo "========================================================"
     python3 test.py --task "$TASK" --fold "$fold" \
         --data_dir "$DATA_DIR" --json_list dataset.json \
-        --pretrained_dir "./runs/$logdir/" --pretrained_model_name model_final.pt \
+        --pretrained_dir "./runs/$logdir/" --pretrained_model_name model.pt \
         --roi_x "$ROI_X" --roi_y "$ROI_Y" --roi_z "$ROI_Z" --workers 0 \
         --in_channels "$IN_CH" --out_channels "$OUT_CH" \
         --exp_name "${logdir}" 2>&1 | tee "$outlog"

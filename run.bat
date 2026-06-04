@@ -73,9 +73,9 @@ if "%ACTION%"=="train" (
 if "%ACTION%"=="test" (
     echo ========================================================
     echo [Testing]  Task: !TASK!  Fold: 0
-    echo [Model]    ./runs/!LOG_BASE!/model_final.pt
+    echo [Model]    ./runs/!LOG_BASE!/model.pt  (best-on-validation)
     echo ========================================================
-    python test.py --task !TASK! --fold 0 --data_dir !DATA_DIR! --json_list dataset.json --pretrained_dir ./runs/!LOG_BASE!/ --pretrained_model_name model_final.pt --roi_x 64 --roi_y 64 --roi_z 64 --workers 0 --in_channels !IN_CH! --out_channels !OUT_CH!
+    python test.py --task !TASK! --fold 0 --data_dir !DATA_DIR! --json_list dataset.json --pretrained_dir ./runs/!LOG_BASE!/ --pretrained_model_name model.pt --roi_x 64 --roi_y 64 --roi_z 64 --workers 0 --in_channels !IN_CH! --out_channels !OUT_CH!
     exit /b
 )
 
@@ -95,7 +95,7 @@ if "%ACTION%"=="kfold" (
         echo ========================================================
         echo [Testing]  Task: !TASK!  Fold: %%F
         echo ========================================================
-        python test.py --task !TASK! --fold %%F --data_dir !DATA_DIR! --json_list dataset.json --pretrained_dir ./runs/!LOGDIR!/ --pretrained_model_name model_final.pt --roi_x 64 --roi_y 64 --roi_z 64 --workers 0 --in_channels !IN_CH! --out_channels !OUT_CH! --exp_name !LOGDIR! > !TESTLOG! 2>&1
+        python test.py --task !TASK! --fold %%F --data_dir !DATA_DIR! --json_list dataset.json --pretrained_dir ./runs/!LOGDIR!/ --pretrained_model_name model.pt --roi_x 64 --roi_y 64 --roi_z 64 --workers 0 --in_channels !IN_CH! --out_channels !OUT_CH! --exp_name !LOGDIR! > !TESTLOG! 2>&1
         type !TESTLOG!
     )
     echo ========================================================
