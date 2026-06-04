@@ -27,8 +27,9 @@ from utils.data_utils import get_loader
 from monai.inferers import sliding_window_inference
 from monai.losses import DiceCELoss
 from monai.metrics import DiceMetric
-from monai.networks.nets import SwinUNETR
 from monai.transforms import Activations, AsDiscrete, Compose
+
+from models.swin_unetr import SwinUNETR
 from monai.utils.enums import MetricReduction
 
 parser = argparse.ArgumentParser(description="Swin UNETR segmentation pipeline")
@@ -100,6 +101,13 @@ parser.add_argument("--use_checkpoint", action="store_true", help="use gradient 
 parser.add_argument("--use_ssl_pretrained", action="store_true", help="use self-supervised pretrained weights")
 parser.add_argument("--spatial_dims", default=3, type=int, help="spatial dimension of input data")
 parser.add_argument("--squared_dice", action="store_true", help="use squared Dice")
+parser.add_argument(
+    "--attn_gate_levels",
+    default="",
+    type=str,
+    help="comma-separated decoder levels to apply attention gates, e.g. '1,2,3,4,5' (full) or "
+    "'1,2,3' (high-res only). Empty = no attention gate (baseline, identical to stock SwinUNETR).",
+)
 
 
 def main():
@@ -162,6 +170,9 @@ def main_worker(gpu, args):
     inf_size = [args.roi_x, args.roi_y, args.roi_z]
 
     pretrained_dir = args.pretrained_dir
+    attn_gate_levels = tuple(int(x) for x in args.attn_gate_levels.split(",") if x.strip())
+    if args.rank == 0 and attn_gate_levels:
+        print(f"Attention gates enabled on decoder levels: {attn_gate_levels}")
     model = SwinUNETR(
         in_channels=args.in_channels,
         out_channels=args.out_channels,
@@ -171,6 +182,7 @@ def main_worker(gpu, args):
         dropout_path_rate=args.dropout_path_rate,
         use_checkpoint=args.use_checkpoint,
         use_v2=True,
+        attn_gate_levels=attn_gate_levels,
     )
 
     if args.resume_ckpt:

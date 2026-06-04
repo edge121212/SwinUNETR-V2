@@ -40,6 +40,19 @@ case "$TASK" in
     *) echo "Error: Invalid task '$TASK'."; exit 1 ;;
 esac
 
+# Attention-gate experiment selector. Set env var ATTN_LEVELS to a comma-separated list of decoder
+# levels, e.g.  ATTN_LEVELS="1,2,3,4,5" ./run.sh kfold Prostate 500  (full AG)  or  ATTN_LEVELS="1,2,3"
+# (high-res only). Unset/empty = baseline (no attention gate, identical to stock SwinUNETR).
+# The logdir gets an "_ag<levels>" suffix so AG runs never clobber the baseline runs/.
+ATTN_LEVELS="${ATTN_LEVELS:-}"
+if [[ -n "$ATTN_LEVELS" ]]; then
+    ATTN_ARGS=(--attn_gate_levels "$ATTN_LEVELS")
+    LOG_BASE="${LOG_BASE}_ag$(echo "$ATTN_LEVELS" | tr -d ', ')"
+    echo "[AttnGate] decoder levels = $ATTN_LEVELS   logdir base = $LOG_BASE"
+else
+    ATTN_ARGS=()
+fi
+
 # If the user passes an explicit epoch count, honor it (fixed max_epochs); otherwise auto-target ~40k iters.
 if [[ -n "$EPOCHS_OVERRIDE" ]]; then
     EPOCH_ARGS=(--max_epochs "$EPOCHS_OVERRIDE")
@@ -74,6 +87,7 @@ run_train_one_fold() {
         "${EPOCH_ARGS[@]}" --val_every "$VAL_EVERY" \
         --in_channels "$IN_CH" --out_channels "$OUT_CH" \
         --save_checkpoint --logdir "$logdir" --use_normal_dataset \
+        "${ATTN_ARGS[@]}" \
         "${resume_args[@]}"
 }
 
@@ -90,6 +104,7 @@ run_test_one_fold() {
         --pretrained_dir "./runs/$logdir/" --pretrained_model_name model.pt \
         --roi_x "$ROI_X" --roi_y "$ROI_Y" --roi_z "$ROI_Z" --workers 0 \
         --in_channels "$IN_CH" --out_channels "$OUT_CH" \
+        "${ATTN_ARGS[@]}" \
         --exp_name "${logdir}" 2>&1 | tee "$outlog"
 }
 

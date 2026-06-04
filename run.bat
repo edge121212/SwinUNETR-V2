@@ -75,6 +75,18 @@ if "!EPOCHS_OVERRIDE!"=="" (
     set EPOCH_DESC=!EPOCHS_OVERRIDE! epochs
 )
 
+:: Attention-gate selector. Before calling, do e.g.  set ATTN_LEVELS=1,2,3,4,5  (full AG) or
+:: set ATTN_LEVELS=1,2,3 (high-res only). Unset = baseline. AG runs get an _ag<levels> logdir
+:: suffix so they never clobber the baseline runs/.
+if defined ATTN_LEVELS (
+    set ATTN_ARGS=--attn_gate_levels !ATTN_LEVELS!
+    set ATTN_TAG=!ATTN_LEVELS:,=!
+    set LOG_BASE=!LOG_BASE!_ag!ATTN_TAG!
+    echo [AttnGate] decoder levels = !ATTN_LEVELS!   logdir base = !LOG_BASE!
+) else (
+    set ATTN_ARGS=
+)
+
 if not exist "!DATA_DIR!" (
     echo Error: 資料夾 '!DATA_DIR!' 不存在，請先執行 'run.bat download !TASK!'。
     exit /b
@@ -84,7 +96,7 @@ if "%ACTION%"=="train" (
     echo ========================================================
     echo [Training] Task: !TASK!  Fold: 0  Budget: !EPOCH_DESC!  ROI: !ROI_X!x!ROI_Y!x!ROI_Z!
     echo ========================================================
-    python main.py --task !TASK! --fold 0 --data_dir !DATA_DIR! --json_list dataset.json --use_checkpoint --workers 2 --roi_x !ROI_X! --roi_y !ROI_Y! --roi_z !ROI_Z! !EPOCH_ARGS! --val_every !VAL_EVERY! --in_channels !IN_CH! --out_channels !OUT_CH! --save_checkpoint --logdir !LOG_BASE! --use_normal_dataset
+    python main.py --task !TASK! --fold 0 --data_dir !DATA_DIR! --json_list dataset.json --use_checkpoint --workers 2 --roi_x !ROI_X! --roi_y !ROI_Y! --roi_z !ROI_Z! !EPOCH_ARGS! --val_every !VAL_EVERY! --in_channels !IN_CH! --out_channels !OUT_CH! --save_checkpoint --logdir !LOG_BASE! --use_normal_dataset !ATTN_ARGS!
     exit /b
 )
 
@@ -93,7 +105,7 @@ if "%ACTION%"=="test" (
     echo [Testing]  Task: !TASK!  Fold: 0
     echo [Model]    ./runs/!LOG_BASE!/model.pt  (best-on-validation)
     echo ========================================================
-    python test.py --task !TASK! --fold 0 --data_dir !DATA_DIR! --json_list dataset.json --pretrained_dir ./runs/!LOG_BASE!/ --pretrained_model_name model.pt --roi_x !ROI_X! --roi_y !ROI_Y! --roi_z !ROI_Z! --workers 0 --in_channels !IN_CH! --out_channels !OUT_CH!
+    python test.py --task !TASK! --fold 0 --data_dir !DATA_DIR! --json_list dataset.json --pretrained_dir ./runs/!LOG_BASE!/ --pretrained_model_name model.pt --roi_x !ROI_X! --roi_y !ROI_Y! --roi_z !ROI_Z! --workers 0 --in_channels !IN_CH! --out_channels !OUT_CH! !ATTN_ARGS!
     exit /b
 )
 
@@ -108,12 +120,12 @@ if "%ACTION%"=="kfold" (
             echo ========================================================
             echo [Training] Task: !TASK!  Fold: %%F  Budget: !EPOCH_DESC!  ROI: !ROI_X!x!ROI_Y!x!ROI_Z!
             echo ========================================================
-            python main.py --task !TASK! --fold %%F --data_dir !DATA_DIR! --json_list dataset.json --use_checkpoint --workers 2 --roi_x !ROI_X! --roi_y !ROI_Y! --roi_z !ROI_Z! !EPOCH_ARGS! --val_every !VAL_EVERY! --in_channels !IN_CH! --out_channels !OUT_CH! --save_checkpoint --logdir !LOGDIR! --use_normal_dataset
+            python main.py --task !TASK! --fold %%F --data_dir !DATA_DIR! --json_list dataset.json --use_checkpoint --workers 2 --roi_x !ROI_X! --roi_y !ROI_Y! --roi_z !ROI_Z! !EPOCH_ARGS! --val_every !VAL_EVERY! --in_channels !IN_CH! --out_channels !OUT_CH! --save_checkpoint --logdir !LOGDIR! --use_normal_dataset !ATTN_ARGS!
         )
         echo ========================================================
         echo [Testing]  Task: !TASK!  Fold: %%F
         echo ========================================================
-        python test.py --task !TASK! --fold %%F --data_dir !DATA_DIR! --json_list dataset.json --pretrained_dir ./runs/!LOGDIR!/ --pretrained_model_name model.pt --roi_x !ROI_X! --roi_y !ROI_Y! --roi_z !ROI_Z! --workers 0 --in_channels !IN_CH! --out_channels !OUT_CH! --exp_name !LOGDIR! > !TESTLOG! 2>&1
+        python test.py --task !TASK! --fold %%F --data_dir !DATA_DIR! --json_list dataset.json --pretrained_dir ./runs/!LOGDIR!/ --pretrained_model_name model.pt --roi_x !ROI_X! --roi_y !ROI_Y! --roi_z !ROI_Z! --workers 0 --in_channels !IN_CH! --out_channels !OUT_CH! !ATTN_ARGS! --exp_name !LOGDIR! > !TESTLOG! 2>&1
         type !TESTLOG!
     )
     echo ========================================================

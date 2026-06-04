@@ -19,7 +19,8 @@ from utils.data_utils import get_loader
 from utils.utils import dice, resample_3d
 
 from monai.inferers import sliding_window_inference
-from monai.networks.nets import SwinUNETR
+
+from models.swin_unetr import SwinUNETR
 
 parser = argparse.ArgumentParser(description="Swin UNETR segmentation pipeline")
 parser.add_argument(
@@ -59,6 +60,12 @@ parser.add_argument("--RandScaleIntensityd_prob", default=0.1, type=float, help=
 parser.add_argument("--RandShiftIntensityd_prob", default=0.1, type=float, help="RandShiftIntensityd aug probability")
 parser.add_argument("--spatial_dims", default=3, type=int, help="spatial dimension of input data")
 parser.add_argument("--use_checkpoint", action="store_true", help="use gradient checkpointing to save memory")
+parser.add_argument(
+    "--attn_gate_levels",
+    default="",
+    type=str,
+    help="comma-separated decoder levels with attention gates; MUST match the value used at training time.",
+)
 
 
 def main():
@@ -87,6 +94,7 @@ def main():
     model_name = args.pretrained_model_name
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     pretrained_pth = os.path.join(pretrained_dir, model_name)
+    attn_gate_levels = tuple(int(x) for x in args.attn_gate_levels.split(",") if x.strip())
     model = SwinUNETR(
         in_channels=args.in_channels,
         out_channels=args.out_channels,
@@ -96,6 +104,7 @@ def main():
         dropout_path_rate=0.0,
         use_checkpoint=args.use_checkpoint,
         use_v2=True,
+        attn_gate_levels=attn_gate_levels,
     )
     model_dict = torch.load(pretrained_pth, weights_only=False)["state_dict"]
     model.load_state_dict(model_dict)
